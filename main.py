@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from psycopg.rows import dict_row
 from pydantic import BaseModel
 
-API_VERSION = "v1"
+API_VERSION = "v2"
 FETCH_COUNTER_KEY = "meshbay_sample_fetch_count"
 
 SCHEMA_STATEMENT = """
@@ -114,6 +114,43 @@ def create_item(payload: ItemPayload) -> dict[str, Any]:
             (item_name,),
         ).fetchone()
     return record
+
+
+@application.get("/api/items/{item_id}")
+def read_item(item_id: int) -> dict[str, Any]:
+    with database_connection() as connection:
+        record = connection.execute(
+            "SELECT id, name, created_at FROM items WHERE id = %s", (item_id,)
+        ).fetchone()
+    if record is None:
+        raise HTTPException(status_code=404, detail="item not found")
+    return record
+
+
+@application.put("/api/items/{item_id}")
+def update_item(item_id: int, payload: ItemPayload) -> dict[str, Any]:
+    item_name = payload.name.strip()
+    if not item_name:
+        raise HTTPException(status_code=400, detail="name is required")
+    with database_connection() as connection:
+        record = connection.execute(
+            "UPDATE items SET name = %s WHERE id = %s RETURNING id, name, created_at",
+            (item_name, item_id),
+        ).fetchone()
+    if record is None:
+        raise HTTPException(status_code=404, detail="item not found")
+    return record
+
+
+@application.delete("/api/items/{item_id}", status_code=204)
+def delete_item(item_id: int) -> None:
+    with database_connection() as connection:
+        deleted = connection.execute(
+            "DELETE FROM items WHERE id = %s RETURNING id", (item_id,)
+        ).fetchone()
+    if deleted is None:
+        raise HTTPException(status_code=404, detail="item not found")
+    return None
 
 
 @application.get("/api/stats")

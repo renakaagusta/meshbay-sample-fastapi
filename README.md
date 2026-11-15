@@ -35,9 +35,12 @@ uv run fastapi run main.py --port 8080
 
 | Method | Path | Description |
 |---|---|---|
-| GET | `/health` | `200 {"status":"ok","version":"v1"}` |
+| GET | `/health` | `200 {"status":"ok","version":"v2"}` |
 | GET | `/api/items` | JSON array of items |
 | POST | `/api/items` | Body `{"name":"..."}` → `201` with the created item |
+| GET | `/api/items/{id}` | `200` with the item, `404` when missing |
+| PUT | `/api/items/{id}` | Body `{"name":"..."}` → `200` with the renamed item, `404` when missing |
+| DELETE | `/api/items/{id}` | `204`, `404` when missing |
 | GET | `/api/stats` | `{"items": <count>, "fetches": <redis counter or null>}` |
 
 ```sh
